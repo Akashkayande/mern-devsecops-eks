@@ -214,8 +214,8 @@ aws ecr get-login-password --region ap-south-1 \
 
 ---
 ## Dockerfile
-- 🔗 [Backend Dockerfile](/quickChat/server/Dockerfile)
-- 🔗 [Backend Dockerfile](/quickChat/client/Dockerfile)
+- 🔗 [Backend Dockerfile](/server/Dockerfile)
+- 🔗 [frontend Dockerfile](/client/Dockerfile)
 
 
 ## 🧱 Docker Image Build (Frontend & Backend)
@@ -314,7 +314,7 @@ Verify:
 kubectl get deployments -n mern-prod
 ```
 <p align="center">
-  <img src="images/output.png" width="600"/>
+  <img src="images/output2.png" width="600"/>
 </p>
 
 
