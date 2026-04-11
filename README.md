@@ -402,3 +402,99 @@ kubectl get ingress -n mern-prod
 
 *We Have successfully Completed The MERN Application Deployment on AWS EKS with GitHub Actions (Blue-Green + DevSecOps). Thank you for Visiting my Project!!
 
+
+
+---------------------------------------------------------
+kubectl create namespace argo-rollouts
+
+kubectl apply -n argo-rollouts \
+  -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
+
+cli:
+curl -LO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64
+        chmod +x kubectl-argo-rollouts-linux-amd64
+        mv kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
+
+
+
+--------------------------------------------------------------
+
+# 🚀 STEP 1: Store Secret in AWS
+
+```bash
+aws secretsmanager create-secret \
+  --name mern-secret \
+  --secret-string '{
+    "DB_URI": "mongodb://user:pass@host",
+    "JWT_SECRET": "supersecret"
+  }'
+```
+
+---
+
+# 🔐 STEP 2: Create IAM Role (IRSA)
+
+## 🔹 Policy
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["secretsmanager:GetSecretValue"],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+---
+
+## 🔹 Service Account
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: secrets-sa
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::<ACCOUNT_ID>:role/secrets-role
+```
+
+```bash
+kubectl apply -f sa.yaml
+```
+
+---
+
+# ⚙️ STEP 3: Install CSI Driver
+
+Install Secrets Store CSI Driver
+
+```bash
+helm repo add secrets-store-csi-driver https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts
+
+helm install csi-secrets secrets-store-csi-driver/secrets-store-csi-driver \
+  -n kube-system --set enableSecretRotation=true \
+  --set rotationPollInterval=2m
+```
+
+---
+
+# 🔗 STEP 4: Install AWS Provider
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/aws/secrets-store-csi-driver-provider-aws/main/deployment/aws-provider-installer.yaml
+```
+
+---
+
+# 🧩 STEP 5: Create SecretProviderClass
+
+👉 This connects AWS → Pod
+
+
+
+# 🚀 STEP 6: Use Secret in Deployment (Mount)
+

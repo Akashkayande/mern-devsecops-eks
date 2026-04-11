@@ -4,8 +4,6 @@ on:
   push:
     branches: [ main ]
     paths-ignore:
-      - 'k8/backend/**'
-      - 'k8/frontend/**'
       - 'README.md'
 
 env:
@@ -17,17 +15,39 @@ env:
   CLUSTER_NAME: mern-eks
 
 jobs:
-  deploy:
+
+  build:
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Gitleaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          args: detect --source . --verbose --redact --exit-code 1
+        
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: |
+          cd server && npm install
+          cd ../client && npm install
+
+  scan:
+    runs-on: ubuntu-latest
+    needs: build
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@v2
-        with:
-          args: >
-            -Dsonar.projectKey=quickChat
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -44,6 +64,22 @@ jobs:
           path: "."
           format: "ALL"
           failOnCVSS: 4
+
+      - name: Checkov - Scan Kubernetes Manifests
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: ./k8
+          framework: kubernetes
+          output_format: cli
+          soft_fail: false
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: scan
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -64,17 +100,17 @@ jobs:
           docker build -t $ECR_REGISTRY/$FRONTEND_REPO:$IMAGE_TAG ./client
 
       - name: Trivy Backend Scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.20.0
         with:
           image-ref: $ECR_REGISTRY/$BACKEND_REPO:${{ github.sha }}
-          severity: HIGH,MEDIUM
+          severity: HIGH,CRITICAL
           exit-code: 1
 
       - name: Trivy Frontend Scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.20.0
         with:
           image-ref: $ECR_REGISTRY/$FRONTEND_REPO:${{ github.sha }}
-          severity: HIGH,MEDIUM
+          severity: HIGH,CRITICAL
           exit-code: 1
 
       - name: Push Backend Image
@@ -83,16 +119,41 @@ jobs:
       - name: Push Frontend Image
         run: docker push $ECR_REGISTRY/$FRONTEND_REPO:$IMAGE_TAG
 
-      // Update Image Tags in Kubernetes Manifests
-      - name: Update Backend Image
-        run: |
-          sed -i "s|IMAGE_PLACEHOLDER|$ECR_REGISTRY/$BACKEND_REPO:$IMAGE_TAG|g" \
-          k8/backend/backend-deployment-green.yaml
+  approval:
+    runs-on: ubuntu-latest
+    needs: docker
+    environment:
+      name: production 
 
-      - name: Update Frontend Image
+    steps:
+      - name: Approval Step
+        run: echo "you want to deploy new version"
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: approval
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update Backend Image in Rollout
         run: |
-          sed -i "s|IMAGE_PLACEHOLDER|$ECR_REGISTRY/$FRONTEND_REPO:$IMAGE_TAG|g" \
-          k8/frontend/frontend-deployment-green.yaml
+          sed -i "s|image: .*backend:.*|image: $ECR_REGISTRY/$BACKEND_REPO:$IMAGE_TAG|g" \
+          k8/backend/backend-rollout.yaml
+
+      - name: Update Frontend Image in Rollout
+        run: |
+          sed -i "s|image: .*frontend:.*|image: $ECR_REGISTRY/$FRONTEND_REPO:$IMAGE_TAG|g" \
+          k8/frontend/frontend-rollout.yaml
+
 
       - name: Update kubeconfig
         run: |
@@ -100,8 +161,71 @@ jobs:
             --region $AWS_REGION \
             --name $CLUSTER_NAME
 
-      - name: Deploy to EKS
+      - name: Deploy Rollouts
         run: |
-          kubectl apply -f k8/backend/
-          kubectl apply -f k8/frontend/
-          kubectl apply -f k8/ingress/
+          kubectl apply -f k8/backend/backend-rollout.yaml
+          kubectl apply -f k8/frontend/frontend-rollout.yaml
+
+  approval-prod:
+    runs-on: ubuntu-latest
+    needs: deploy
+    environment:
+      name: production   
+
+    steps:
+      - run: echo "you want to deploy new version to public"
+
+
+  promote:
+    runs-on: ubuntu-latest
+    needs: approval-prod
+
+    steps:
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+        
+      - name: Install Argo Rollouts CLI
+        run: |
+          curl -LO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64
+          chmod +x kubectl-argo-rollouts-linux-amd64
+          mv kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
+
+      - name: Setup kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+          --region $AWS_REGION \
+          --name $CLUSTER_NAME
+
+      - name: Promote Backend
+        run: kubectl argo rollouts promote backend
+
+      - name: Promote Frontend
+        run: kubectl argo rollouts promote frontend
+
+  dast:
+    runs-on: ubuntu-latest
+    needs: promote
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run OWASP ZAP Full Scan (Docker)
+        run: |
+          docker run --rm \
+            -v $(pwd):/zap/wrk/:rw \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-full-scan.py \
+            -t https://k8s-mernprod-mern-2a3b4c5d6e.us-east-1.elb.amazonaws.com \
+            -r zap-report.html 
+
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-full-scan-report
+          path: |
+            zap-report.html

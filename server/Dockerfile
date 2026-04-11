@@ -10,6 +10,9 @@ RUN npm install --production
 
 COPY . .
 
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
 # Expose backend port
 EXPOSE 9000
 

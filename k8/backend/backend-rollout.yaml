@@ -1,0 +1,47 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: backend
+  namespace: mern-prod
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      serviceAccountName: secrets-sa 
+      containers:
+      - name: backend
+        image: 407622020962.dkr.ecr.ap-south-1.amazonaws.com/backend:3c91a11
+        ports:
+        - containerPort: 9000
+        volumeMounts:
+        - name: secrets-store
+          mountPath: "/mnt/secrets"
+          readOnly: true
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "300m"
+            memory: "512Mi"
+      volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+            secretProviderClass: "mern-secret-provider"
+  strategy:
+    blueGreen:
+      activeService: backend-service
+      previewService: backend-green-service
+      autoPromotionEnabled: false 
+      - analysis:
+          templates:
+          - templateName: backend-rollback
