@@ -1,128 +1,67 @@
+# 🚀 MERN App Deployment on AWS EKS Using DevSecOps Practices
 
-
-## MERN Application Deployment on AWS EKS with GitHub Actions (Blue-Green + DevSecOps)
-
----
-
-## 📌 Project Title
-
-**End-to-End DevSecOps Pipeline for MERN Application Deployment on AWS EKS**
+### 🔵🟢 Blue-Green Deployment + 🔐 Security + ⚙️ CI/CD Automation
 
 ---
 
-## 📖 Project Description
+## 📌 Overview
 
-This project demonstrates a **complete end-to-end DevSecOps implementation** where a **MERN stack application** is containerized, secured, and deployed on an **AWS EKS Kubernetes cluster** using a **fully automated GitHub Actions CI/CD pipeline**.
+This project demonstrates a **complete end-to-end DevSecOps implementation** for deploying a MERN  application on AWS.
 
-The pipeline follows **DevSecOps best practices** by integrating **security scanning tools** (SonarQube, OWASP Dependency Check, Trivy) and enforces **security gates** to prevent vulnerable code from reaching production.
+It covers:
 
-The deployment strategy uses **Blue-Green deployment** to ensure **zero-downtime releases**, while **MongoDB Atlas** is used as a managed database service.
+* ☁️ Infrastructure setup using AWS (EC2, ECR, EKS)
+* 🐳 Secure containerization with Docker
+* 🔵🟢 Blue-Green deployment using Argo Rollouts
+* 🔐 Advanced security practices (SAST, DAST, IaC scanning)
+* 🔐 Uses **AWS Secrets Manager + CSI Driver** for secure secret handling
+* 🚀 Fully automated CI/CD pipeline using GitHub Actions
+* 🌐 Production-grade exposure using AWS ALB Ingress
 
 ---
 
+## 🧾 Description
+
+This project is designed to simulate a **real-world production DevSecOps pipeline** used in modern cloud-native applications.
+
+Key highlights:
+
+* Uses **EKS (Kubernetes)** for container orchestration
+* Implements **Argo Rollouts** for zero-downtime deployments
+* Integrates **multi-layer security scanning**:
+
+  * Code (SAST)
+  * Dependencies (SCA)
+  * Containers
+  * Kubernetes manifests
+  * Runtime (DAST)
+* Uses **AWS Secrets Manager + CSI Driver** for secure secret handling
+* Implements **HPA + Network Policies** for scalability and security
+* Uses **ALB Ingress Controller** for external traffic routing
+
+👉 Goal: Build a **secure, automated, scalable, and production-ready deployment system**
+
+---
 <p align="center">
-  <img src="images/diagram.png" width="600"/>
+  <img src="images/architecture.png" width="600"/>
 </p>
 
-## 🧰 Tech Stack
 
-### 🖥 Application
+## 🎯 Key Features
 
-* React (Frontend)
-* Node.js + Express (Backend)
-* MongoDB Atlas (Database)
-
-### 🐳 Containerization
-
-* Docker
-* Amazon ECR (Elastic Container Registry)
-
-### ☸️ Orchestration & Cloud
-
-* Kubernetes
-* Amazon EKS (Elastic Kubernetes Service)
-* AWS ALB Controller
-* HPA (Horizontal Pod Autoscaler)
-* Resource Limits
-
-### 🔐 DevSecOps & CI/CD
-
-* GitHub Actions (CI/CD)
-* SonarQube (SAST)
-* OWASP Dependency Check (SCA)
-* Trivy (Container & IaC scanning)
-
-### ☁️ Cloud Provider
-
-* AWS (EC2, EKS, ECR, IAM)
+* 🔵🟢 Blue-Green Deployment (Zero Downtime)
+* 🔁 Auto Rollback using Prometheus metrics
+* 🔐 End-to-End DevSecOps Pipeline
+* 🌐 Public Access via ALB (HTTPS + Routing)
+* 📈 Auto Scaling with HPA
+* 🔒 Zero Trust Networking (Network Policies)
+* 🔑 Secure Secret Management (AWS Secrets Manager)
 
 ---
 
-🔵🟢 Blue-Green Deployment Strategy
+## ☁️ Step By Step Implementation 
 
-Blue → Current Production
-
-Green → New Release
-
-New version deployed to Green
-
-After verification, traffic is switched
-
-Zero downtime & instant rollback
-
-## 🏗 Project Architecture
-
-```
-Developer
-   |
-   | Git Push
-   ↓
-GitHub Repository
-   |
-   | GitHub Actions CI/CD
-   |
-   |-- SonarQube (Code Quality & SAST)
-   |-- OWASP Dependency Check (SCA)
-   |-- Docker Build (Frontend & Backend)
-   |-- Trivy Scan (Container Security)
-   |-- Push Images to Amazon ECR
-   |
-   ↓
-Amazon EKS Cluster
-   |
-   |-- Frontend (Blue & Green)
-   |-- Backend (Blue & Green)
-   |-- HPA
-   |-- NGINX Ingress
-   |
-MongoDB Atlas (External Managed DB)
-```
-
----
-
-## 🔄 CI/CD & Deployment Flow
-
-1. Developer pushes code to **main branch**
-2. GitHub Actions pipeline starts automatically
-3. **SonarQube** scans source code
-4. **OWASP Dependency Check** scans dependencies
-5. Docker images are built for frontend & backend
-6. **Trivy** scans images for HIGH/MEDIUM vulnerabilities
-7. Images are tagged using **`github.sha`** and pushed to **Amazon ECR**
-8. Kubernetes deployment is updated using **Blue-Green strategy**
-9. Application is deployed to **Amazon EKS**
-10. Traffic is routed using **NGINX Ingress**
-11. MongoDB Atlas handles database operations externally
-
-> 🚫 If any **HIGH or MEDIUM vulnerability** is detected, the pipeline **fails immediately**.
----
-
-# 🛠️ Project Implementation 
-
-
-## 🖥️ EC2 Setup for DevOps & CI Tools
-
-### 🔹 Launch EC2 Instance
+### 🔹 Launch AWS EC2 Instance
 
 * Instance Type: `t3.medium`
 * OS: Ubuntu 22.04 LTS
@@ -132,6 +71,7 @@ MongoDB Atlas (External Managed DB)
   * Port `22` – SSH
   * Port `80`, `443` – Application
   * Port `9000` – SonarQube
+  * Port `3100` - Argo-rollout
 
 Connect to EC2:
 
@@ -139,40 +79,10 @@ Connect to EC2:
 ssh ubuntu@<EC2_PUBLIC_IP>
 ```
 
----
 <p align="center">
   <img src="images/ec2.png" width="600"/>
 </p>
-
-
-## 🐳 Docker Installation & Configuration
-
-### 🔹 Install Docker Engine
-
-```bash
-sudo apt update
-sudo apt install docker.io -y
-sudo systemctl start docker
-sudo systemctl enable docker
-```
-
-### 🔹 Configure Docker Without sudo
-
-```bash
-sudo usermod -aG docker ubuntu
-newgrp docker
-```
 ---
-
-## ☁️ AWS CLI Setup & IAM Configuration
-
-### 🔹 Install AWS CLI
-
-```bash
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip
-unzip awscliv2.zip
-sudo ./aws/install
-```
 
 ### 🔹 IAM User & Permissions
 
@@ -184,15 +94,33 @@ Create an IAM user with **programmatic access** and attach:
 * AmazonEC2ContainerRegistryFullAccess
 * AmazonEC2FullAccess
 
+### 🔹 Install AWS CLI
+
+```bash
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip
+unzip awscliv2.zip
+sudo ./aws/install
+```
+---
 ### 🔹 Configure AWS CLI
 
 ```bash
 aws configure
 ```
+* Provide Access Key
+* Secret Key
+* Region
 
 ---
+### 🔹 Install Docker Engine
 
-## 📦 Amazon ECR Repository Setup
+```bash
+sudo apt update
+sudo apt install docker.io -y
+sudo systemctl start docker
+sudo systemctl enable docker
+```
+---
 
 ### 🔹 Create ECR Repositories
 
@@ -214,10 +142,13 @@ aws ecr get-login-password --region ap-south-1 \
 
 ---
 ## Dockerfile
-- 🔗 [Backend Dockerfile](/server/Dockerfile)
-- 🔗 [frontend Dockerfile](/client/Dockerfile)
+- 🔗 [Backend Dockerfile](/quickChat/server/Dockerfile)
+- 🔗 [frontend Dockerfile](/quickChat/client/Dockerfile)
 
-
+* Multi-stage builds (optimized image size)
+* Alpine base images (lightweight)
+* Non-root user (security)
+---
 ## 🧱 Docker Image Build (Frontend & Backend)
 
 ### 🔹 Build Backend Image
@@ -231,7 +162,7 @@ docker build -t backend ./server
 ```bash
 docker build -t frontend ./client
 ```
-
+---
 ### 🔹 Tag Images for ECR
 
 ```bash
@@ -249,7 +180,6 @@ docker push <ECR_REGISTRY>/frontend:latest
 ```
 
 ---
-
 ## ☸️ Amazon EKS Cluster Setup
 
 ### 🔹 Install eksctl
@@ -280,7 +210,7 @@ eksctl create cluster \
 ```bash
 eksctl utils associate-iam-oidc-provider \
 --region ap-south-1 \
---cluster EKS-1 \
+--cluster mern-eks \
 --approve
 ```
 
@@ -299,26 +229,467 @@ aws eks update-kubeconfig \
 ```bash
 kubectl create namespace mern-prod
 ```
+---
 
+## 🔵🟢 Blue-Green Deployment using Argo Rollouts (with Auto Rollback)
 
-### Apply Manifest files
+## 📌 Overview
+
+Implement the **Blue-Green Deployment strategy** using **Argo Rollouts** in Kubernetes, along with an **automatic rollback mechanism** based on application health metrics.
+
+The setup ensures:
+
+* Zero downtime deployments
+* Safe release of new versions
+* Automatic rollback if the new version fails
+
+---
+
+## ⚙️ Argo Rollouts Setup
+
+* Argo Rollouts is installed in the cluster using Kubernetes manifests
+
+* Apply Argo Rollouts Controller
+
 ```bash
-kubectl apply -f k8/backend/ -n mern-prod
-kubectl apply -f k8/frontend/ -n mern-prod
-kubectl apply -f k8/ingress/ -n mern-prod
+kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
 ```
 
-Verify:
+* Verify Installation
+```bash
+kubectl get pods -n argo-rollouts
+```
+
+* Port Forward UI
+```bash
+kubectl port-forward svc/argo-rollouts-dashboard -n argo-rollouts 3100:3100
+```
+### Features Used
+
+* Rollout resource (instead of Deployment)
+* Blue-Green deployment strategy
+* Manual promotion control
+* Integration with Prometheus for analysis
+
+---
+
+## 🔵🟢 Blue-Green Deployment Strategy
+
+### Rollout Configuration
+
+```yaml
+strategy:
+  blueGreen:
+    activeService: frontend-service
+    previewService: frontend-green-service
+    autoPromotionEnabled: false
+    prePromotionAnalysis:
+      templates:
+        - templateName: frontend-rollback
+```
+## Rollout Resources
+- 🔗 [frontend-rollout.yaml](/quickChat/k8/frontend/frontend-rollout.yaml)
+- 🔗 [backend-rollout.yaml](/quickChat/k8/backend/backend-rollout.yaml)
+
+
+### Explanation
+
+* **activeService** → Serves live production traffic
+* **previewService** → Routes traffic to new version for testing
+* **autoPromotionEnabled: false** → Manual approval required before switching traffic
+* **prePromotionAnalysis** → Runs health checks before promoting new version
+
+---
+
+## 🔄 Deployment Flow
+
+1. New version deployed to **preview environment**
+2. Traffic is not immediately shifted
+3. Metrics are evaluated using AnalysisTemplate
+4. If successful → manually promote to production
+5. If failed → automatic rollback triggered
+
+---
+
+## 🔁 Auto Rollback using AnalysisTemplate
+
+### Purpose
+
+Automatically detect failures in the new version and rollback to the stable version.
+
+### AnalysisTemplate Configuration
+
+- 🔗 [AnalysisTemplate.yaml](/quickChat/k8/backend/auto-rollback.yaml)
+---
+
+## 📊 Metrics-Based Validation
+
+### Metric Used: Success Rate
+
+* Calculates percentage of successful HTTP requests (2xx)
+* Compared against total requests
+
+### Conditions
+
+* ✅ Success → ≥ 95% success rate
+* ❌ Failure → < 95% success rate
+
+### Evaluation
+
+* Checked every **30 seconds**
+* Evaluated **3 times before decision**
+
+---
+
+## 🔁 Rollback Mechanism
+
+* If failure condition is met:
+
+  * Rollout is automatically aborted
+  * Traffic remains on stable (blue) version
+* No manual intervention required
+---
+
+## 📈 Horizontal Pod Autoscaler (HPA)
+
+To ensure **high availability and scalability**, HPA is implemented for the application.
+
+### Features
+
+* Automatically scales pods based on CPU utilization
+* Handles traffic spikes efficiently
+* Improves application reliability
+
+### HPA YAML
+
+- 🔗 [Backend-hpa.yaml](/quickChat/k8/backend/backend-hpa.yaml)
+- 🔗 [frontend-hpa.yaml](/quickChat/k8/backend/frontend-hpa.yaml)
+### Apply HPA
 
 ```bash
-kubectl get deployments -n mern-prod
+kubectl apply -f hpa.yaml
 ```
+
+---
+
+## 🔐 Network Policies (Frontend → Backend Only)
+
+To enhance **security inside the cluster**, Network Policies are configured to allow only **frontend-to-backend communication**.
+
+### Features
+
+* Restricts unwanted traffic
+* Implements zero-trust networking
+* Only frontend pods can access backend pods
+
+### Network Policy YAML
+- 🔗 [Network-Policy.yaml](/quickChat/k8/backend/network-policy.yaml)
+### Apply Network Policy
+
+```bash
+kubectl apply -f network-policy.yaml
+```
+---
+## 🔐 Secure Secret Management using AWS Secrets Manager + CSI Driver (Kubernetes)
+
+### 📌 Overview
+
+Kubernetes native secrets are **not fully secure** (base64 encoded, not encrypted by default in etcd).
+To enhance security, this project uses:
+
+👉 **AWS Secrets Manager + CSI Driver** to securely inject secrets into pods.
+
+---
+
+## 🏗️ Workflow
+
+### 1. Store secrets in AWS Secrets Manager
+### 2. Create IAM Policy for accessing secrets
+### 3. Attach policy to IAM Role
+### 4. Create Kubernetes Service Account
+- 🔗 [Service-Account.yaml](/quickChat/k8/backend/service-account.yaml)
+
+### 5. Attach IAM Role to Service Account (IRSA)
+### 6. Install CSI Driver + AWS Provider
+
+```bash id="s4a"
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/secrets-store-csi-driver/main/deploy/rbac-secretproviderclass.yaml
+```
+
+```bash id="s5a"
+kubectl apply -f https://raw.githubusercontent.com/aws/secrets-store-csi-driver-provider-aws/main/deployment/aws-provider-installer.yaml
+```
+
+### 7. Create SecretProviderClass
+
+* SecretProviderClass is a Kubernetes custom resource that acts as a bridge/configuration layer between:
+
+* 🟦 Kubernetes (your pod)
+* ☁️ External secret store (AWS Secrets Manager)
+
+* 👉 It tells the CSI Driver:
+
+* Which secrets to fetch
+* From where (AWS)
+* How to mount them inside the pod
+- 🔗 [service-provide-class.yaml](/quickChat/k8/backend/service-account.yaml)
+
+### 8. Mount secrets inside Pod using volumes
+
+```yaml id="s7a"
+spec:
+  serviceAccountName: secrets-sa
+
+  containers:
+    - name: backend
+      image: <your-image>
+
+      volumeMounts:
+        - name: secrets-store
+          mountPath: "/mnt/secrets"
+          readOnly: true
+
+  volumes:
+    - name: secrets-store
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: "mern-secret-provider"
+```
+---
+## 🌐 Exposing Application using Ingress (ALB Controller)
+
+## 📌 Problem Statement
+
+By default, Kubernetes services are **not accessible outside the cluster**:
+
+* `ClusterIP` → Internal communication only
+* `NodePort` → Limited and not production-friendly
+* No built-in HTTPS, routing, or load balancing
+
+👉 This creates problems:
+
+* ❌ Cannot access app from internet
+* ❌ No path-based routing (frontend/backend separation)
+* ❌ No SSL (HTTPS) support
+
+---
+
+## ✅ Solution
+
+We solve this using:
+
+* **Kubernetes Ingress** → Defines routing rules
+* **AWS ALB Ingress Controller** → Creates and manages AWS Load Balancer
+
+👉 Result:
+
+* 🌐 Public access to app
+* 🔀 Path-based routing
+* 🔒 HTTPS support
+* ⚖️ Managed load balancing
+
+---
+
+## 🏗️ Architecture Flow
+
+```bash id="r9y7cx"
+User → ALB (Ingress) → Services → Pods → Application
+```
+
+### Flow Explanation
+
+1. User hits ALB DNS URL
+2. ALB checks Ingress rules
+3. Routes request:
+
+   * `/` → Frontend service
+   * `/api` → Backend service
+4. Service forwards to pods
+5. Pods serve application response
+
+---
+
+## ⚙️ Components & How They Work
+
+### 1. Ingress
+
+* Acts as **entry point** for external traffic
+* Defines routing rules (path/domain based)
+
+### 2. ALB Ingress Controller
+
+* Watches Ingress resources
+* Automatically:
+
+  * Creates AWS ALB
+  * Configures listeners (HTTP/HTTPS)
+  * Applies routing rules
+
+### 3. AWS ALB (Application Load Balancer)
+
+* Handles:
+
+  * Traffic distribution
+  * SSL termination (HTTPS)
+  * High availability
+
+### 4. Services
+
+* Bridge between Ingress and Pods
+* Routes traffic to correct application
+
+
+---
+
+## 📄 Ingress Configuration (Path-Based Routing)
+
+* Define Ingress Rules
+* Configure HTTPS-based Ingress
+* Implement path-based routing:
+* / → Frontend Service
+* /api → Backend Service
+---
+
+## 🚀 Apply Ingress
+
+- 🔗 [ingress.yaml](/quickChat/k8/ingress/ingress.yaml)
+
+```bash id="w7jz0h"
+kubectl apply -f ingress.yaml
+```
+
+---
+### 5. Install ALB Controller using Helm (Use IRSA)
+
+```bash id="u2n4wz"
+helm repo add eks https://aws.github.io/eks-charts
+helm repo update
+
+helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
+  -n kube-system \
+  --set clusterName=mern-prod \
+  --set serviceAccount.create=false \
+  --set serviceAccount.name=aws-load-balancer-controller
+```
+---
+
+## 🔍 Get ALB DNS
+
+```bash id="2r6b1x"
+kubectl get ingress -n mern-prod
+```
+
 <p align="center">
-  <img src="images/output2.png" width="600"/>
+  <img src="images/ingress.png" width="600"/>
 </p>
 
+---
+<p align="center">
+  <img src="images/website.png" width="600"/>
+</p>
 
+---
 
+## 🔐🚀 DevSecOps CI/CD Pipeline using GitHub Actions
+
+Pipeline location:
+
+### CI/CD Pipeline
+- 🔗 [GitHub Actions Workflow](.github/workflows/devsecops-cicd.yaml)
+
+---
+
+### 📌 Problem Statement
+
+After deploying the application on Kubernetes:
+
+* ❌ Deployment is manual
+* ❌ No security checks before release
+* ❌ Risk of pushing vulnerable code to production
+* ❌ No automated image build & deployment
+
+---
+
+## ✅ Solution
+
+We implemented a **DevSecOps pipeline using GitHub Actions** that:
+
+* ⚙️ Automates build, scan, and deployment
+* 🔐 Integrates security at every stage
+* 🚀 Deploys directly to EKS using Argo Rollouts
+* 🔁 Ensures safe promotion using approvals
+
+---
+
+## 🏗️ 🔥 Complete Pipeline Flow
+
+```id="flow-devsecops-advanced"
+Developer Push (main branch)
+        ↓
+📦 Build Stage
+  - Checkout Code
+  - Gitleaks Scan (Secrets Detection)
+  - Install Dependencies
+        ↓
+🔍 SAST & Security Scan Stage
+  - SonarQube Scan (Code Quality + Bugs)
+  - Quality Gate Validation (Fail if bad code)
+  - OWASP Dependency Check (Vulnerable libs)
+  - Checkov Scan (K8s Security)
+        ↓
+🐳 Docker Build & Image Security
+  - Build Frontend & Backend Images
+  - Trivy Scan (Container vulnerabilities)
+  - Push Images to AWS ECR
+        ↓
+🛑 Manual Approval (Pre-Deploy)
+        ↓
+🚀 Deploy to EKS (Preview Environment)
+  - Update Rollout Image Tags
+  - Apply Kubernetes Manifests
+  - Deploy using Argo Rollouts (Blue-Green)
+        ↓
+🛑 Production Approval Gate
+        ↓
+🔵🟢 Promote to Production
+  - Argo Rollouts Promote Command
+  - Traffic Shift (Preview → Active)
+        ↓
+🛡️ DAST (Runtime Security Testing)
+  - OWASP ZAP Scan on Live ALB URL
+  - Generate Security Report
+        ↓
+📊 Artifacts & Reports Stored
+        ↓
+✅ Secure Production Release
+```
+
+---
+
+## ⚙️ Pipeline Stages & Working
+
+### 1️⃣ Build Stage
+
+* Checkout code
+* Run **Gitleaks** → Detect secrets in code
+* Install dependencies
+
+👉 ❌ Pipeline fails if secrets found
+
+---
+
+### 2️⃣ Security Scan Stage (Shift Left Security)
+
+* 🔍 **SonarQube** → Code quality + SAST
+* 🛡️ **Quality Gate** → Blocks bad code
+* 📦 **OWASP Dependency Check** → Vulnerable libraries
+* ☸️ **Checkov** → Kubernetes manifest security
+
+👉 ❌ Stops pipeline on vulnerabilities
+
+---
 ## 🔍 SonarQube Setup (SAST)
 
 ### 🔹 Run SonarQube Using Docker
@@ -329,13 +700,11 @@ docker run -d \
 -p 9000:9000 \
 sonarqube:lts
 ```
-
 Access:
 
 ```
 http://<EC2_PUBLIC_IP>:9000
 ```
-
 
 ### 🔹 Configure SonarQube
 
@@ -353,148 +722,120 @@ http://<EC2_PUBLIC_IP>:9000
   <img src="images/sonarqube.png" width="600"/>
 </p>
 
-6️⃣ Setup GitHub Secrets
+### 3️⃣ Docker + Image Security
 
-Add the following secrets in GitHub:
+* Build frontend & backend images
+* Scan using **Trivy**:
 
-### Required GitHub Secrets
-
-- AWS_ACCESS_KEY_ID
-- AWS_SECRET_ACCESS_KEY
-- AWS_REGION
-- ECR_REGISTRY
-- SONAR_TOKEN
-- SONAR_HOST_URL
-
-
-## 🔄 GitHub Actions DevSecOps CI/CD Pipeline
-
-Pipeline location:
-
-### CI/CD Pipeline
-- 🔗 [GitHub Actions Workflow](.github/workflows/devsecops-cicd.yaml)
+  * Detect HIGH / CRITICAL vulnerabilities
+* Push only secure images to ECR
 
 ---
 
-## 🔐 Security  Summary
+### 4️⃣ Approval Gate (Pre-Deployment)
 
-| Tool                   | Purpose              | Action               |
-| ---------------------- | -------------------- | -------------------- |
-| SonarQube              | Static Code Analysis | Fail on Quality Gate |
-| OWASP Dependency Check | Dependency Scan      | Fail on CVSS ≥ 4     |
-| Trivy                  | Image Scan           | Fail on HIGH/MEDIUM  |
+* Manual approval required
+* Prevents accidental deployment
 
 ---
 
-### Access The Application
-```bash
-kubectl get ingress -n mern-prod
-```
-<p align="center">
-  <img src="images/ingress.png" width="600"/>
-</p>
+### 5️⃣ Deployment (Preview Environment)
 
-<p align="center">
-  <img src="images/website.png" width="600"/>
-</p>
+* Update image tags dynamically
+* Connect to EKS cluster
+* Deploy using **Argo Rollouts (Blue-Green)**
 
+👉 New version runs in **preview environment**
+👉 Public See **Old Version**
+---
 
+### 6️⃣ Production Approval Gate
 
-*We Have successfully Completed The MERN Application Deployment on AWS EKS with GitHub Actions (Blue-Green + DevSecOps). Thank you for Visiting my Project!!
-
-
-
----------------------------------------------------------
-kubectl create namespace argo-rollouts
-
-kubectl apply -n argo-rollouts \
-  -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
-
-cli:
-curl -LO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64
-        chmod +x kubectl-argo-rollouts-linux-amd64
-        mv kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
-
-
-
---------------------------------------------------------------
-
-# 🚀 STEP 1: Store Secret in AWS
-
-```bash
-aws secretsmanager create-secret \
-  --name mern-secret \
-  --secret-string '{
-    "DB_URI": "mongodb://user:pass@host",
-    "JWT_SECRET": "supersecret"
-  }'
-```
+* Second approval before public release
+* Ensures business-level validation
 
 ---
 
-# 🔐 STEP 2: Create IAM Role (IRSA)
+### 7️⃣ Promotion (Traffic Shift)
 
-## 🔹 Policy
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": ["secretsmanager:GetSecretValue"],
-      "Resource": "*"
-    }
-  ]
-}
+```bash id="cmd-promote"
+kubectl argo rollouts promote backend
+kubectl argo rollouts promote frontend
 ```
+
+👉 Traffic switches:
+
+* Preview → Production
+* Public See New Version
+* Zero downtime deployment
 
 ---
 
-## 🔹 Service Account
+### 8️⃣ DAST (Runtime Security)
 
-```yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: secrets-sa
-  annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::<ACCOUNT_ID>:role/secrets-role
+* Run **OWASP ZAP** on live app
+
+```bash id="cmd-zap"
+docker run --rm \
+  -v $(pwd):/zap/wrk/:rw \
+  ghcr.io/zaproxy/zaproxy:stable \
+  zap-full-scan.py \
+  -t https://<alb-dns> \
+  -r zap-report.html
 ```
 
-```bash
-kubectl apply -f sa.yaml
-```
+* Detect runtime vulnerabilities
+* Generate report artifact
 
 ---
 
-# ⚙️ STEP 3: Install CSI Driver
+## 🔧 Key Security Tools
 
-Install Secrets Store CSI Driver
-
-```bash
-helm repo add secrets-store-csi-driver https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts
-
-helm install csi-secrets secrets-store-csi-driver/secrets-store-csi-driver \
-  -n kube-system --set enableSecretRotation=true \
-  --set rotationPollInterval=2m
-```
-
----
-
-# 🔗 STEP 4: Install AWS Provider
-
-```bash
-kubectl apply -f https://raw.githubusercontent.com/aws/secrets-store-csi-driver-provider-aws/main/deployment/aws-provider-installer.yaml
-```
+| Tool                   | Type           | Purpose                  |
+| ---------------------- | -------------- | ------------------------ |
+| Gitleaks               | Secrets Scan   | Detect hardcoded secrets |
+| SonarQube              | SAST           | Code vulnerabilities     |
+| OWASP Dependency Check | SCA            | Library vulnerabilities  |
+| Checkov                | IaC Scan       | K8s security             |
+| Trivy                  | Container Scan | Image vulnerabilities    |
+| OWASP ZAP              | DAST           | Runtime security         |
 
 ---
 
-# 🧩 STEP 5: Create SecretProviderClass
+## 🎯 Key Benefits
 
-👉 This connects AWS → Pod
+* 🔐 Security at every stage (Shift Left + Right)
+* 🚀 Fully automated CI/CD pipeline
+* 🛑 Prevents insecure deployments
+* 🔁 Controlled releases with approvals
+* 📊 Continuous validation (pre + post deployment)
 
+---
 
+## 📌 Conclusion
 
-# 🚀 STEP 6: Use Secret in Deployment (Mount)
+This pipeline delivers:
 
+* **End-to-end automation**
+* **Strong DevSecOps practices**
+* **Safe production deployments using Blue-Green strategy**
+
+👉 Result: A **robust, secure, production-ready CI/CD pipeline** used in real-world DevSecOps environments.
+
+---
+* We Have successfully Completed The MERN Application Deployment on AWS EKS with GitHub Actions (Blue-Green + DevSecOps). Thank you for Visiting my Project!!
+
+## 🧑‍💻 Author
+
+**Akash Kayande**
+DevOps Engineer | AWS | Kubernetes | DevSecOps | CI/CD | GitOps
+
+---
+
+## ⭐ Support
+
+If you found this project useful:
+
+* ⭐ Star the repository
+* 🍴 Fork and experiment
+* 🐛 Raise issues or improvements
